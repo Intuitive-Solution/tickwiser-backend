@@ -25,6 +25,8 @@ jobs:
         run: |
           TIMESTAMP=$(date +%F-%H-%M)
           FILENAME="backup-$TIMESTAMP.sql"
+          echo "Backup started: $FILENAME"
+          echo "Dumping database: ${{ secrets.DB_DATABASE }} ${{ secrets.DB_HOST }} ${{ secrets.DB_PORT }} ${{ secrets.DB_USERNAME }} ${{ secrets.DB_PASSWORD }}"
           mysqldump -h ${{ secrets.DB_HOST }} -P ${{ secrets.DB_PORT }} -u${{ secrets.DB_USERNAME }} -p${{ secrets.DB_PASSWORD }} ${{ secrets.DB_DATABASE }} > $FILENAME
           echo "Backup created: $FILENAME"
 
