@@ -2,7 +2,7 @@ name: MySQL Backup to S3
 
 on:
   schedule:
-    - cron: '0 1 * * *'  # Every day at 1:00 AM UTC
+    - cron: '0 1 * * *'  # Daily at 1:00 AM UTC
   workflow_dispatch:
 
 jobs:
@@ -10,10 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install MySQL Client & AWS CLI
+      - name: Install MySQL Client & pip
         run: |
           sudo apt-get update
-          sudo apt-get install -y mysql-client awscli
+          sudo apt-get install -y mysql-client python3-pip
+
+      - name: Install AWS CLI using pip
+        run: |
+          pip3 install awscli --upgrade --user
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Dump MySQL Database
         run: |
@@ -30,4 +35,4 @@ jobs:
         run: |
           TIMESTAMP=$(date +%F-%H-%M)
           FILENAME="backup-$TIMESTAMP.sql"
-          aws s3 cp $FILENAME s3://${{ secrets.AWS_BUCKET }}/$FILENAME
+          ~/.local/bin/aws s3 cp $FILENAME s3://${{ secrets.AWS_BUCKET }}/$FILENAME
