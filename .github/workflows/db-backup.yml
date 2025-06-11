@@ -8,7 +8,8 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-latest
-
+    environment: production  # <<< This must match your environment name exactly
+    
     steps:
       - name: Install MySQL Client & pip
         run: |
