@@ -23,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
+        
+        $middleware->alias([
+            'firebase.auth' => \App\Http\Middleware\FirebaseAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
