@@ -50,6 +50,27 @@ php artisan migrate
 php artisan serve
 ```
 
+## Deployment
+
+### Railway.app Deployment
+
+**Build Command:**
+```bash
+composer install --no-dev --optimize-autoloader
+```
+
+**Deploy Command:**
+```bash
+php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
+```
+
+Make sure to set the following environment variables in Railway:
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `APP_KEY` (generate with `php artisan key:generate --show`)
+- Database configuration variables
+- Firebase service account credentials
+
 ## API Endpoints
 
 ### Tasks
