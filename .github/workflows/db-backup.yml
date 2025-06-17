@@ -29,6 +29,7 @@ jobs:
           echo "Dumping database: ${{ secrets.DB_DATABASE }} ${{ secrets.DB_HOST }} ${{ secrets.DB_PORT }} ${{ secrets.DB_USERNAME }} ${{ secrets.DB_PASSWORD }}"
           mysqldump -h ${{ secrets.DB_HOST }} -P ${{ secrets.DB_PORT }} -u${{ secrets.DB_USERNAME }} -p${{ secrets.DB_PASSWORD }} ${{ secrets.DB_DATABASE }} > $FILENAME
           echo "Backup created: $FILENAME"
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
 
       - name: Upload to S3
         env:
@@ -36,6 +37,5 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          TIMESTAMP=$(date +%F-%H-%M)
           FILENAME="backup-$TIMESTAMP.sql"
           ~/.local/bin/aws s3 cp $FILENAME s3://${{ secrets.AWS_BUCKET }}/$FILENAME
