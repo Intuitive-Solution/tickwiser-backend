@@ -8,4 +8,9 @@ class Task extends Model
 {
     //
     protected $fillable = ['title', 'status', 'date', 'user_id'];
+
+    public function comments()
+    {
+        return $this->hasMany(TaskComment::class)->orderBy('created_at', 'desc');
+    }
 }

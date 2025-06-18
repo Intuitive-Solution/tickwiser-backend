@@ -11,7 +11,7 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $firebaseUid = $request->get('firebase_uid');
-        return Task::where('user_id', $firebaseUid)->get();
+        return Task::where('user_id', $firebaseUid)->with('comments')->get();
     }
 
     public function store(Request $request)
