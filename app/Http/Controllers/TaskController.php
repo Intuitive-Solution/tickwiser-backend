@@ -11,7 +11,11 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $firebaseUid = $request->get('firebase_uid');
-        return Task::where('user_id', $firebaseUid)->with('comments')->get();
+        return Task::where('user_id', $firebaseUid)
+            ->with('comments')
+            ->orderBy('priority', 'asc')
+            ->orderBy('date', 'asc')
+            ->get();
     }
 
     public function store(Request $request)
@@ -19,6 +23,7 @@ class TaskController extends Controller
         $request->validate([
             'title' => 'required|string',
             'date' => 'required|date',
+            'priority' => 'integer|min:1|max:10',
         ]);
 
         $firebaseUid = $request->get('firebase_uid');
@@ -27,6 +32,7 @@ class TaskController extends Controller
             'title' => $request->title,
             'date' => $request->date,
             'status' => $request->status ?? false,
+            'priority' => $request->priority ?? 5,
             'user_id' => $firebaseUid,
         ]);
     }
@@ -40,7 +46,7 @@ class TaskController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
         
-        $task->update($request->only('title', 'status', 'date'));
+        $task->update($request->only('title', 'status', 'date', 'priority'));
         return $task;
     }
 

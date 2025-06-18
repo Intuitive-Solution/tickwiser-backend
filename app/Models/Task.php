@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Task extends Model
 {
     //
-    protected $fillable = ['title', 'status', 'date', 'user_id'];
+    protected $fillable = ['title', 'status', 'date', 'user_id', 'priority'];
 
     public function comments()
     {
