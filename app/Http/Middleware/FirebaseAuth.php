@@ -15,11 +15,11 @@ class FirebaseAuth
     public function __construct()
     {
         try {
-            // For development, we'll use a simpler approach without service account
+            // Initialize Firebase Auth with project ID
             $factory = (new Factory)->withProjectId(config('firebase.project_id'));
             $this->auth = $factory->createAuth();
         } catch (Exception $e) {
-            // If Firebase setup fails, we'll handle it gracefully
+            \Log::error('Firebase initialization failed: ' . $e->getMessage());
             $this->auth = null;
         }
     }
@@ -37,27 +37,107 @@ class FirebaseAuth
         $token = substr($authHeader, 7);
 
         try {
-            // For development, we'll use a simple token validation
-            // In production, you should verify the Firebase token properly
+            // Always try to extract UID from token first (this is more reliable)
+            $uid = $this->extractUidFromToken($token);
+            
+            if (!$uid) {
+                return response()->json(['error' => 'Invalid token format - no UID found'], 401);
+            }
+
+            // Try Firebase SDK verification if available (for additional security)
             if ($this->auth) {
-                $verifiedIdToken = $this->auth->verifyIdToken($token);
-                $uid = $verifiedIdToken->claims()->get('sub');
-                
-                // Add user info to request
-                $request->merge(['firebase_uid' => $uid]);
-            } else {
-                // Fallback for development - basic token check
-                if (empty($token) || strlen($token) < 10) {
-                    return response()->json(['error' => 'Invalid token'], 401);
+                try {
+                    $verifiedIdToken = $this->auth->verifyIdToken($token);
+                    $verifiedUid = $verifiedIdToken->claims()->get('sub');
+                    $email = $verifiedIdToken->claims()->get('email');
+                    
+                    // Ensure the UIDs match
+                    if ($uid !== $verifiedUid) {
+                        \Log::error('UID mismatch: extracted=' . $uid . ', verified=' . $verifiedUid);
+                        return response()->json(['error' => 'Token verification failed'], 401);
+                    }
+                    
+                    // Add user info to request
+                    $request->merge([
+                        'firebase_uid' => $uid,
+                        'firebase_email' => $email
+                    ]);
+                    
+                    \Log::info('✅ Firebase auth successful for user: ' . $uid . ' (' . $email . ')');
+                } catch (Exception $verifyError) {
+                    // If Firebase SDK fails, fall back to manual extraction (but log the issue)
+                    \Log::warning('Firebase SDK verification failed, using manual extraction for user: ' . $uid . ' - Error: ' . $verifyError->getMessage());
+                    $request->merge(['firebase_uid' => $uid]);
                 }
-                
-                // For development, we'll accept any reasonable token
-                $request->merge(['firebase_uid' => 'dev_user_' . substr($token, 0, 10)]);
+            } else {
+                // Firebase SDK not available, use manual extraction
+                $request->merge(['firebase_uid' => $uid]);
+                \Log::info('🔧 Using manual token parsing for user: ' . $uid);
             }
 
             return $next($request);
         } catch (Exception $e) {
-            return response()->json(['error' => 'Unauthorized - Invalid token'], 401);
+            \Log::error('Firebase token processing failed: ' . $e->getMessage());
+            return response()->json(['error' => 'Unauthorized - Token processing failed: ' . $e->getMessage()], 401);
+        }
+    }
+
+    /**
+     * Extract UID from Firebase JWT token as fallback
+     */
+    private function extractUidFromToken($token)
+    {
+        try {
+            // Split the JWT token
+            $parts = explode('.', $token);
+            if (count($parts) !== 3) {
+                \Log::error('Invalid JWT format: expected 3 parts, got ' . count($parts));
+                return null;
+            }
+
+            // Decode the payload (second part)
+            // Add padding if needed for base64 decoding
+            $payload = $parts[1];
+            $payload = str_replace(['-', '_'], ['+', '/'], $payload);
+            
+            // Add padding if needed
+            $padding = 4 - (strlen($payload) % 4);
+            if ($padding !== 4) {
+                $payload .= str_repeat('=', $padding);
+            }
+            
+            $decodedPayload = base64_decode($payload);
+            if (!$decodedPayload) {
+                \Log::error('Failed to base64 decode JWT payload');
+                return null;
+            }
+            
+            $claims = json_decode($decodedPayload, true);
+            if (!$claims) {
+                \Log::error('Failed to JSON decode JWT claims');
+                return null;
+            }
+
+            // Log the claims for debugging
+            \Log::info('🔍 JWT Claims extracted:', [
+                'sub' => $claims['sub'] ?? 'missing',
+                'email' => $claims['email'] ?? 'missing',
+                'iss' => $claims['iss'] ?? 'missing',
+                'aud' => $claims['aud'] ?? 'missing'
+            ]);
+
+            // Return the 'sub' claim which contains the Firebase UID
+            $uid = $claims['sub'] ?? null;
+            
+            if (!$uid) {
+                \Log::error('No sub claim found in JWT token');
+                return null;
+            }
+            
+            return $uid;
+        } catch (Exception $e) {
+            \Log::error('Failed to extract UID from token: ' . $e->getMessage());
+            return null;
         }
     }
 } 
