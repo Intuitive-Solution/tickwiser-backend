@@ -1,3 +1,6 @@
+[![GitHub contributors](https://img.shields.io/github/contributors/Intuitive-Solution/tickwise-backend?style=flat-square)](https://github.com/Intuitive-Solution/tickwise-backend/graphs/contributors)
+
+
 # Laravel Todo App
 
 A simple RESTful API for managing tasks built with Laravel 11.
