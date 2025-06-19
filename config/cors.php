@@ -20,8 +20,8 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'https://todo-app-intutive.netlify.app',
-        'http://localhost:5173'
+        'http://localhost:5173',
+        'https://app.tickwiser.com'
     ],
 
     'allowed_origins_patterns' => [],
