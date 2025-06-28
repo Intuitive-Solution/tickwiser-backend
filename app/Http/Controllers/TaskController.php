@@ -11,8 +11,14 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $firebaseUid = $request->get('firebase_uid');
-        return Task::where('user_id', $firebaseUid)
-            ->with('comments')
+        $query = Task::where('user_id', $firebaseUid);
+        
+        // Filter by project if project_id is provided
+        if ($request->has('project_id')) {
+            $query->where('project_id', $request->project_id);
+        }
+        
+        return $query->with(['comments', 'project'])
             ->orderBy('priority', 'asc')
             ->orderBy('date', 'asc')
             ->get();
@@ -24,6 +30,7 @@ class TaskController extends Controller
             'title' => 'required|string',
             'date' => 'required|date',
             'priority' => 'integer|min:1|max:10',
+            'project_id' => 'nullable|exists:projects,id',
         ]);
 
         $firebaseUid = $request->get('firebase_uid');
@@ -34,6 +41,7 @@ class TaskController extends Controller
             'status' => $request->status ?? false,
             'priority' => $request->priority ?? 5,
             'user_id' => $firebaseUid,
+            'project_id' => $request->project_id,
         ]);
     }
 
@@ -46,7 +54,12 @@ class TaskController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
         
-        $task->update($request->only('title', 'status', 'date', 'priority'));
+        // Validate project_id if provided
+        $request->validate([
+            'project_id' => 'nullable|exists:projects,id',
+        ]);
+        
+        $task->update($request->only('title', 'status', 'date', 'priority', 'project_id'));
         return $task;
     }
 
